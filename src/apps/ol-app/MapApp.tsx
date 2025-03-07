@@ -107,7 +107,7 @@ export function MapApp() {
       const stationData = [];
       for (const year of years) {
         for (const month of monthsArray) {
-          const path = `./img/radverkehr-zaehlstellen/${stationId}/${year}-${month}.csv`;
+          const path = `./data/radverkehr-zaehlstellen/${stationId}/${year}-${month}.csv`;
           try {
             const data = await loadCSVs(path);
             stationData.push(...data);
@@ -141,11 +141,11 @@ export function MapApp() {
     setLoading(true);
     const loadAccidentData = async () => {
       const csvFiles = [
-        "./img/Unfallorte2019_LinRef.csv",
-        "./img/Unfallorte2020_LinRef.csv",
-        "./img/Unfallorte2021_LinRef.csv",
-        "./img/Unfallorte2022_LinRef.csv",
-        "./img/Unfallorte2023_LinRef.csv",
+        "./data/Unfallorte2019_LinRef.csv",
+        "./data/Unfallorte2020_LinRef.csv",
+        "./data/Unfallorte2021_LinRef.csv",
+        "./data/Unfallorte2022_LinRef.csv",
+        "./data/Unfallorte2023_LinRef.csv",
       ];
       let allData = [];
       for (const url of csvFiles) {
@@ -250,7 +250,7 @@ useEffect(() => {
     );
     map.olMap.getView().setMaxZoom(19);
     const vectorSource = new VectorSource({
-      url: "./img/fahrradzaehl-standorte.geojson",
+      url: "./data/fahrradzaehl-standorte.geojson",
       format: new GeoJSON({
         dataProjection: "EPSG:4326",
         featureProjection: "EPSG:4326",
