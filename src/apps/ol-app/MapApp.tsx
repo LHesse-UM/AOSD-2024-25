@@ -105,25 +105,36 @@ export function MapApp() {
 
   const loadBikeCountData = async () => {
     setLoading(true);
-    const allData = [];
-    for (const stationId of stationIds) {
-      const stationData = [];
-      for (const year of years) {
-        for (const month of monthsArray) {
-          const path = `data/radverkehr-zaehlstellen/${stationId}/${year}-${month}.csv`;
-          try {
-            const data = await loadCSVs(path);
-            stationData.push(...data);
-          } catch (error) {
-            console.warn(`Datei nicht gefunden oder nicht lesbar: ${path}`);
-          }
-        }
-      }
-      allData.push({ id: stationId, data: stationData });
+    try {
+      const allData = await Promise.all(
+        stationIds.map(async (stationId) => {
+          // Erstelle für jeden stationId ein Array von Promises für alle (year, month)-Kombinationen.
+          const stationDataArrays = await Promise.all(
+            years.flatMap((year) =>
+              monthsArray.map(async (month) => {
+                const path = `data/radverkehr-zaehlstellen/${stationId}/${year}-${month}.csv`;
+                try {
+                  return await loadCSVs(path);
+                } catch (error) {
+                  console.warn(`Datei nicht gefunden oder nicht lesbar: ${path}`);
+                  return []; // Leeres Array, wenn ein Fehler auftritt.
+                }
+              })
+            )
+          );
+          // Flatten, um ein einzelnes Array für die Station zu erhalten.
+          const stationData = stationDataArrays.flat();
+          return { id: stationId, data: stationData };
+        })
+      );
+      setBikeCountData(allData);
+    } catch (error) {
+      console.error("Fehler beim Laden der Fahrradzähl-Daten:", error);
+    } finally {
+      setLoading(false);
     }
-    setBikeCountData(allData);
-    setLoading(false);
   };
+  
 
   const loadCSV = async (csvUrl) => {
     const response = await fetch(csvUrl);
@@ -146,7 +157,7 @@ export function MapApp() {
       const csvFiles = [
         "data/Unfallorte2019_LinRef.csv",
         "data/Unfallorte2020_LinRef.csv",
-        "data/Unfallorte2021_LinRef.csv",
+        "data/Unfallorte2021LinRef.csv",
         "data/Unfallorte2022_LinRef.csv",
         "data/Unfallorte2023_LinRef.csv",
       ];
@@ -699,7 +710,7 @@ const aggregatedCounts = useMemo(() => {
         </Box>
       </Flex>
     )}    
-    <Router>
+    <Router basename="AOSD-2024-25/">
       <Flex height="100vh" direction="column" overflow="hidden" width="100%">
         <Header />
         <Routes>
