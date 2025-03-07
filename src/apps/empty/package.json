@@ -1,9 +1,0 @@
-{
-    "name": "empty",
-    "private": true,
-    "dependencies": {
-        "@open-pioneer/chakra-integration": "catalog:",
-        "@open-pioneer/runtime": "catalog:",
-        "sample-package": "workspace:^"
-    }
-}

@@ -1,4 +1,0 @@
-{
-    "*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}": ["prettier --write --ignore-path .eslintignore", "eslint"],
-    "*.{md,json,css,scss,html}": ["prettier --write --ignore-path .eslintignore"]
-}
