@@ -2,22 +2,44 @@ import React, { useMemo } from 'react';
 import { Box } from "@open-pioneer/chakra-integration";
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
+const weekdayNames = {
+  "2": "Monday",
+  "3": "Tuesday",
+  "4": "Wednesday",
+  "5": "Thursday",
+  "6": "Friday",
+  "7": "Saturday",
+  "1": "Sunday",
+};
+
+const monthNames = {
+  "1": "January",
+  "2": "February",
+  "3": "March",
+  "4": "April",
+  "5": "May",
+  "6": "June",
+  "7": "July",
+  "8": "August",
+  "9": "September",
+  "10": "Oktober",
+  "11": "November",
+  "12": "December",
+};
+
 const BikeTrafficChart = ({ bikeCountData, timeRange, selectedMonth, selectedWeekday }) => {
-  // Daten für das Diagramm vorbereiten
   const chartData = useMemo(() => {
-    const hourData = Array(24).fill(0); // Array für 24 Stunden
-    const hourCounts = Array(24).fill(0); // Zähler für Durchschnittsbildung
+    const hourData = Array(24).fill(0);
+    const hourCounts = Array(24).fill(0);
 
     bikeCountData.forEach(station => {
       station.data.forEach(entry => {
         const [dateStr, timeStr] = entry.timestamp.split(" ");
-        const entryTime = timeStr.slice(0, 5); // HH:MM Format
-        const entryHour = parseInt(timeStr.split(":")[0], 10); // Stunde extrahieren
+        const entryHour = parseInt(timeStr.split(":")[0], 10); 
         const entryMinutes = parseInt(timeStr.split(":")[1], 10);
         const entryDate = new Date(`${dateStr}T${timeStr}`);
-        const entryWeekday = entryDate.getDay() === 0 ? 7 : entryDate.getDay(); // Sonntag = 7, Montag = 1
-
-        const entryMonth = entryDate.getMonth() + 1; // Monatsindex auf 1-basierend
+        const entryWeekday = entryDate.getDay() === 0 ? 7 : entryDate.getDay();
+        const entryMonth = entryDate.getMonth() + 1;
         const entryMinutesTotal = entryHour * 60 + entryMinutes;
 
         // FILTERUNG NACH AUSGEWÄHLTEM MONAT UND WOCHENTAG
@@ -41,15 +63,17 @@ const BikeTrafficChart = ({ bikeCountData, timeRange, selectedMonth, selectedWee
     return processedData;
   }, [bikeCountData, timeRange, selectedMonth, selectedWeekday]);
 
+  // Mapping für die Anzeige der Tage und Monate
+  const weekdayDisplay = selectedWeekday === "all" ? "alle Tage" : (weekdayNames[selectedWeekday] || selectedWeekday);
+  const monthDisplay = selectedMonth === "all" ? "alle Monate" : (monthNames[selectedMonth] || selectedMonth);
+
   return (
     <>
       <Box fontSize="md" fontWeight="bold" mb={2} textAlign="center">
         Average Bicycle Traffic per Hour
       </Box>
       <Box fontSize="sm" color="gray.600" mb={4} textAlign="center">
-        {`For ${selectedWeekday === "all" ? "all days" : `weekday ${selectedWeekday}`} in ${
-          selectedMonth === "all" ? "all months" : `month ${selectedMonth}`
-        }, between ${Math.floor(timeRange[0] / 60)
+        {`For ${weekdayDisplay} in ${monthDisplay}, between ${Math.floor(timeRange[0] / 60)
           .toString()
           .padStart(2, "0")}:${(timeRange[0] % 60).toString().padStart(2, "0")} and ${Math.floor(
           timeRange[1] / 60

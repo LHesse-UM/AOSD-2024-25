@@ -27,20 +27,17 @@ import Legend from "./Legend";
 import { WelcomeModal } from "./welcomeText";
 
 // ─── UTILITY-FUNKTIONEN ─────────────────────────────────────────────
-// Konvertiert Minuten in einen HH:MM-String
 const formatTime = (minutes) => {
   const hours = Math.floor(minutes / 60).toString().padStart(2, "0");
   const mins = (minutes % 60).toString().padStart(2, "0");
   return `${hours}:${mins}`;
 };
 
-// Konvertiert einen HH:MM-String in Minuten
 const timeStringToMinutes = (timeString) => {
   const [hours, minutes] = timeString.split(":").map(Number);
   return hours * 60 + minutes;
 };
 
-// Generiert eine Liste von Zeitoptionen in 15-Minuten-Schritten
 const generateTimeOptions = () => {
   const options = [];
   for (let minutes = 0; minutes < 1440; minutes += 15) {
@@ -50,25 +47,21 @@ const generateTimeOptions = () => {
 };
 
 export function MapApp() {
-  // STATE UND REFERENZEN
-  const [weekday, setWeekday] = useState("1"); // z. B. Montag
-  const [month, setMonth] = useState("1"); // z. B. Januar
-  const [timeRange, setTimeRange] = useState([480, 1020]); // Standard: 08:00 bis 17:00
+  const [weekday, setWeekday] = useState("1");
+  const [month, setMonth] = useState("1");
+  const [timeRange, setTimeRange] = useState([480, 1020]);
   const [loading, setLoading] = useState(false);
   const [bikeCountData, setBikeCountData] = useState([]);
   const [accidentData, setAccidentData] = useState([]);
-  const [rawAccidentData, setRawAccidentData] = useState([]); // Für gecachte Unfalldaten
+  const [rawAccidentData, setRawAccidentData] = useState([]);
   const [showModal, setShowModal] = useState(true);
 
-  // Refs für Unfall-Layer, GeoJSON-Source und Station-Layer
   const accidentsLayerRef = useRef(null);
   const vectorSourceRef = useRef(null);
   const stationLayerRef = useRef(null);
 
-  // Map aus dem Map-Model
   const { map } = useMapModel(MAP_ID);
 
-  // Konstanten für Zählstationen und Zeitraum
   const stationIds = [
     "100020113",
     "100031297",
@@ -93,7 +86,7 @@ export function MapApp() {
     }
     const csvText = await response.text();
     const rows = csvText.split("\n").map((row) => row.split(","));
-    rows.shift(); // Header entfernen
+    rows.shift();
     return rows
       .filter((row) => row.length > 1)
       .map((row) => ({
@@ -104,11 +97,9 @@ export function MapApp() {
   };
 
   const loadBikeCountData = async () => {
-    setLoading(true);
     try {
       const allData = await Promise.all(
         stationIds.map(async (stationId) => {
-          // Erstelle für jeden stationId ein Array von Promises für alle (year, month)-Kombinationen.
           const stationDataArrays = await Promise.all(
             years.flatMap((year) =>
               monthsArray.map(async (month) => {
@@ -117,12 +108,11 @@ export function MapApp() {
                   return await loadCSVs(path);
                 } catch (error) {
                   console.warn(`Datei nicht gefunden oder nicht lesbar: ${path}`);
-                  return []; // Leeres Array, wenn ein Fehler auftritt.
+                  return [];
                 }
               })
             )
           );
-          // Flatten, um ein einzelnes Array für die Station zu erhalten.
           const stationData = stationDataArrays.flat();
           return { id: stationId, data: stationData };
         })
@@ -150,7 +140,7 @@ export function MapApp() {
     );
   };
 
-  // ─── Unfalldaten Caching ─────────────────────────────────────────────
+  // ─── Unfalldaten
   useEffect(() => {
     setLoading(true);
     const loadAccidentData = async () => {
@@ -182,8 +172,6 @@ useEffect(() => {
   if (accidentsLayerRef.current) {
     map.olMap.removeLayer(accidentsLayerRef.current);
   }
-  
-  // Definiere die Bounding Box (wie in der Karte)
   const boundingBox = {
     minX: 7.53,
     maxX: 7.75,
@@ -196,7 +184,6 @@ useEffect(() => {
     lat >= boundingBox.minY &&
     lat <= boundingBox.maxY;
   
-  // Filtere die Unfalldaten: Monat, Wochentag und Bounding Box
   const filteredData = rawAccidentData.filter((entry) => {
     const matchesMonth =
       month === "all" || parseInt(entry.UMONAT) === parseInt(month);
@@ -216,7 +203,6 @@ useEffect(() => {
   });
   setAccidentData(filteredData);
 
-  // Erstelle einen VectorSource für die Karte anhand der gefilterten Daten
   const vectorSource = new VectorSource();
   filteredData.forEach((entry) => {
     const lon = parseFloat(
@@ -247,12 +233,12 @@ useEffect(() => {
 }, [map, month, weekday, rawAccidentData]);
 
 
-  // ─── Fahrradzähl-Daten laden ─────────────────────────────────────────────
+  // ─── Fahrradzähl-Daten
   useEffect(() => {
     loadBikeCountData();
   }, []);
 
-  // ─── Initialisiere Karte und GeoJSON-Layer für Fahrradstationen ─────────────────────────────────────────────
+  // ─── Karte
   useEffect(() => {
     if (!map?.olMap) return;
     map.olMap.setView(
@@ -290,7 +276,6 @@ useEffect(() => {
     map.olMap.addLayer(stationLayer);
   }, [map]);
 
-   // Füge in MapApp, direkt nach der Initialisierung der Map hinzu:
    const handleReset = () => {
     setWeekday("1");
     setMonth("1");
@@ -306,7 +291,7 @@ useEffect(() => {
     }
   };
 
-  // ─── Dynamische Aktualisierung der Symbolisierung ─────────────────────────────────────────────
+  // ─── Dynamische Aktualisierung der Symbolisierung
   useEffect(() => {
     setLoading(true);
     if (!vectorSourceRef.current || !bikeCountData.length) return;
@@ -373,7 +358,6 @@ useEffect(() => {
   }, [bikeCountData, timeRange, month, weekday]);
 
   // ─── Aggregierte Zählungen für die Anzeige der Statistiken ─────────────────────────────────────────────
-  // Aktualisierte Aggregation: Berechnung des Durchschnitts statt der Gesamtsumme
 const aggregatedCounts = useMemo(() => {
   return bikeCountData.reduce((acc, station) => {
     const filteredEntries = station.data.filter((entry) => {
@@ -399,7 +383,6 @@ const aggregatedCounts = useMemo(() => {
     );
     const averageCount =
       filteredEntries.length > 0 ? totalCount / filteredEntries.length : 0;
-    // Auf zwei Nachkommastellen runden
     acc[station.id] = Math.round(averageCount * 100) / 100;
     return acc;
   }, {});
@@ -408,7 +391,7 @@ const aggregatedCounts = useMemo(() => {
 
   const timeOptions = useMemo(() => generateTimeOptions(), []);
 
-  // ─── INTERNE KOMPONENTEN FÜR NAVIGATION ─────────────────────────────────────────────
+  // ─── INTERNE KOMPONENTEN FÜR NAVIGATION
 
   const Header = () => (
     <Flex
@@ -553,136 +536,178 @@ const aggregatedCounts = useMemo(() => {
   </>
   );
 
-  const StatsPage = () => (
-    <Flex flex="1" direction="column" padding={6} overflowY="auto" gap={6}>
-      {/* Filter & Zeitsteuerung */}
-      <Box width="100%" padding={4} borderWidth="1px" borderRadius="md" boxShadow="sm" backgroundColor="white">
-        <Text fontSize="lg" fontWeight="bold" mb={4} textAlign="center">
-          Filter Data
-        </Text>
-        <Flex justifyContent="space-between" wrap="wrap" gap={4}>
-          {/* Wochentag & Monat */}
-          <Box flex="1" minWidth="220px">
-            <Text mb={2}>Select a weekday</Text>
-            <Select value={weekday} onChange={(e) => setWeekday(e.target.value)}>
-              <option value="all">Any Workday</option>
-              <option value="1">Sunday</option>
-              <option value="2">Monday</option>
-              <option value="3">Tuesday</option>
-              <option value="4">Wednesday</option>
-              <option value="5">Thursday</option>
-              <option value="6">Friday</option>
-              <option value="7">Saturday</option>
-            </Select>
-          </Box>
-          <Box flex="1" minWidth="220px">
-            <Text mb={2}>Select a month</Text>
-            <Select value={month} onChange={(e) => setMonth(e.target.value)}>
-              <option value="all">Any Month</option>
-              <option value="1">January</option>
-              <option value="2">February</option>
-              <option value="3">March</option>
-              <option value="4">April</option>
-              <option value="5">May</option>
-              <option value="6">June</option>
-              <option value="7">July</option>
-              <option value="8">August</option>
-              <option value="9">September</option>
-              <option value="10">October</option>
-              <option value="11">November</option>
-              <option value="12">December</option>
-            </Select>
-          </Box>
-        </Flex>
-        {/* Zeitintervall-Picker */}
-        <Box mt={6}>
-          <Text mb={2} fontSize="md" fontWeight="bold">
-            Choose a time interval
+  const StatsPage = () => {
+    const weekdayNamesStats = {
+      "1": "Sunday",
+      "2": "Monday",
+      "3": "Tuesday",
+      "4": "Wednesday",
+      "5": "Thursday",
+      "6": "Friday",
+      "7": "Saturday",
+    };
+  
+    const monthNamesStats = {
+      "1": "January",
+      "2": "February",
+      "3": "March",
+      "4": "April",
+      "5": "May",
+      "6": "June",
+      "7": "July",
+      "8": "August",
+      "9": "September",
+      "10": "October",
+      "11": "November",
+      "12": "December",
+    };
+  
+    const weekdayDisplay =
+      weekday === "all" ? "all weekdays" : weekdayNamesStats[weekday];
+    const monthDisplay =
+      month === "all" ? "all months" : monthNamesStats[month];
+    const filterSubtitle = `For ${weekdayDisplay} in ${monthDisplay} from ${formatTime(
+      timeRange[0]
+    )} to ${formatTime(timeRange[1])}`;
+  
+    return (
+      <Flex flex="1" direction="column" padding={6} overflowY="auto" gap={6}>
+
+        <Box width="100%" padding={4} borderWidth="1px" borderRadius="md" boxShadow="sm" backgroundColor="white">
+          <Text fontSize="lg" fontWeight="bold" mb={4} textAlign="center">
+            Filter Data
           </Text>
-          <Flex gap={4} justifyContent="center">
-            <Box>
-              <Text mb={1}>Start</Text>
-              <Select
-                value={formatTime(timeRange[0])}
-                onChange={(e) => {
-                  const newStart = timeStringToMinutes(e.target.value);
-                  setTimeRange(([currentStart, currentEnd]) =>
-                    newStart > currentEnd ? [newStart, newStart] : [newStart, currentEnd]
-                  );
-                }}
-              >
-                {timeOptions.map((timeStr) => (
-                  <option key={timeStr} value={timeStr}>
-                    {timeStr}
-                  </option>
-                ))}
+          <Flex justifyContent="space-between" wrap="wrap" gap={4}>
+
+            <Box flex="1" minWidth="220px">
+              <Text mb={2}>Select a weekday</Text>
+              <Select value={weekday} onChange={(e) => setWeekday(e.target.value)}>
+                <option value="all">Any Workday</option>
+                <option value="1">Sunday</option>
+                <option value="2">Monday</option>
+                <option value="3">Tuesday</option>
+                <option value="4">Wednesday</option>
+                <option value="5">Thursday</option>
+                <option value="6">Friday</option>
+                <option value="7">Saturday</option>
               </Select>
             </Box>
-            <Box>
-              <Text mb={1}>End</Text>
-              <Select
-                value={formatTime(timeRange[1])}
-                onChange={(e) => {
-                  const newEnd = timeStringToMinutes(e.target.value);
-                  setTimeRange(([currentStart, currentEnd]) =>
-                    newEnd < currentStart ? [newEnd, newEnd] : [currentStart, newEnd]
-                  );
-                }}
-              >
-                {timeOptions.map((timeStr) => (
-                  <option key={timeStr} value={timeStr}>
-                    {timeStr}
-                  </option>
-                ))}
+            <Box flex="1" minWidth="220px">
+              <Text mb={2}>Select a month</Text>
+              <Select value={month} onChange={(e) => setMonth(e.target.value)}>
+                <option value="all">Any Month</option>
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
               </Select>
             </Box>
           </Flex>
-        </Box>
-      </Box>
-  
-      {/* Aggregierte Daten */}
-      <Box width="100%" borderWidth="1px" borderRadius="md" p={4} boxShadow="sm" backgroundColor="white">
-        <Text fontSize="lg" fontWeight="bold" mb={4} textAlign="center">
-          Aggregated Bicycle Counts
-        </Text>
-        {Object.entries(aggregatedCounts).map(([stationId, count]) => {
-          const stationFeature = vectorSourceRef.current
-            ?.getFeatures()
-            .find((feature) => String(feature.get("id")) === stationId);
-          const stationName = stationFeature
-            ? stationFeature.get("name") || `Station ${stationId}`
-            : `Station ${stationId}`;
-  
-          return (
-            <Flex
-              key={stationId}
-              justifyContent="space-between"
-              borderBottom="1px solid"
-              borderColor="gray.200"
-              p={2}
-            >
-              <Text fontSize="sm">{stationName}</Text>
-              <Text fontSize="sm">{Math.round(count)} Bicycles</Text>
+
+          <Box mt={6}>
+            <Text fontSize="lg" fontWeight="bold" mb={4} textAlign="center">
+              Filter Data
+            </Text>
+            <Text mb={2} fontSize="md" fontWeight="bold" textAlign={"center"}>
+              Choose a time interval
+            </Text>
+            <Flex gap={4} justifyContent="center">
+              <Box>
+                <Text mb={1}>Start</Text>
+                <Select
+                  value={formatTime(timeRange[0])}
+                  onChange={(e) => {
+                    const newStart = timeStringToMinutes(e.target.value);
+                    setTimeRange(([currentStart, currentEnd]) =>
+                      newStart > currentEnd ? [newStart, newStart] : [newStart, currentEnd]
+                    );
+                  }}
+                >
+                  {timeOptions.map((timeStr) => (
+                    <option key={timeStr} value={timeStr}>
+                      {timeStr}
+                    </option>
+                  ))}
+                </Select>
+              </Box>
+              <Box>
+                <Text mb={1}>End</Text>
+                <Select
+                  value={formatTime(timeRange[1])}
+                  onChange={(e) => {
+                    const newEnd = timeStringToMinutes(e.target.value);
+                    setTimeRange(([currentStart, currentEnd]) =>
+                      newEnd < currentStart ? [newEnd, newEnd] : [currentStart, newEnd]
+                    );
+                  }}
+                >
+                  {timeOptions.map((timeStr) => (
+                    <option key={timeStr} value={timeStr}>
+                      {timeStr}
+                    </option>
+                  ))}
+                </Select>
+              </Box>
             </Flex>
-          );
-        })}
-      </Box>
+          </Box>
+        </Box>
   
-      {/* Diagramme */}
-      <Box width="100%" borderWidth="1px" borderRadius="md" p={4} boxShadow="sm" backgroundColor="white">
-        <BikeTrafficChart
-          bikeCountData={bikeCountData}
-          timeRange={timeRange}
-          selectedMonth={month}
-          selectedWeekday={weekday}
-        />
-        <Text fontSize="lg" fontWeight="bold" mt={6} mb={4} textAlign="center">
-          Accident Statistics - Workdays vs. Weekends
-        </Text>
-        <AccidentBarChart accidentData={rawAccidentData} selectedMonth={month} />
-      </Box>
-    </Flex>
-  );
+        {/* Aggregierte Daten */}
+        <Box width="100%" borderWidth="1px" borderRadius="md" p={4} boxShadow="sm" backgroundColor="white">
+          <Text fontSize="lg" fontWeight="bold" mb={1} textAlign="center">
+            Aggregated Bicycle Counts
+          </Text>
+          <Text fontSize="sm" mb={4} textAlign="center" color="gray.500">
+            {filterSubtitle}
+          </Text>
+          {Object.entries(aggregatedCounts).map(([stationId, count]) => {
+            const stationFeature = vectorSourceRef.current
+              ?.getFeatures()
+              .find((feature) => String(feature.get("id")) === stationId);
+            const stationName = stationFeature
+              ? stationFeature.get("name") || `Station ${stationId}`
+              : `Station ${stationId}`;
+  
+            return (
+              <Flex
+                key={stationId}
+                justifyContent="space-between"
+                borderBottom="1px solid"
+                borderColor="gray.200"
+                p={2}
+              >
+                <Text fontSize="sm">{stationName}</Text>
+                <Text fontSize="sm">{Math.round(count)} Bicycles</Text>
+              </Flex>
+            );
+          })}
+        </Box>
+  
+        {/* Diagramme */}
+        <Box width="100%" borderWidth="1px" borderRadius="md" p={4} boxShadow="sm" backgroundColor="white">
+          <BikeTrafficChart
+            bikeCountData={bikeCountData}
+            timeRange={timeRange}
+            selectedMonth={month}
+            selectedWeekday={weekday}
+          />
+          <Text fontSize="lg" fontWeight="bold" mt={6} mb={4} textAlign="center">
+            Accident Statistics - Workdays vs. Weekends
+          </Text>
+          <AccidentBarChart accidentData={rawAccidentData} selectedMonth={month} />
+        </Box>
+      </Flex>
+    );
+  };
+  
   
   
   

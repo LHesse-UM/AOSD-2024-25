@@ -2,14 +2,12 @@ import React, { useMemo } from 'react';
 import { Box } from "@open-pioneer/chakra-integration";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 
-// Hilfsfunktion: Gibt für ein Jahr und einen 1-indexierten Monat zurück, wie viele Werktage und Wochenendtage es gibt.
 const countDaysInMonth = (year: number, month: number) => {
   const daysInMonth = new Date(year, month, 0).getDate();
   let weekdayCount = 0, weekendCount = 0;
   for (let day = 1; day <= daysInMonth; day++) {
     const d = new Date(year, month - 1, day);
     const jsDay = d.getDay(); // 0 = Sonntag, 6 = Samstag
-    // Konvertiere in das Unfallformat: Sonntag = 1, Montag = 2, …, Samstag = 7
     const accidentDay = jsDay === 0 ? 1 : jsDay === 6 ? 7 : jsDay + 1;
     if (accidentDay >= 2 && accidentDay <= 6) {
       weekdayCount++;
@@ -21,11 +19,16 @@ const countDaysInMonth = (year: number, month: number) => {
 };
 
 const AccidentBarChart = ({ accidentData, selectedMonth }: { accidentData: any[], selectedMonth: string }) => {
-  // Definiere die betrachteten Jahre – diese sollten zu deinen Unfall-CSV-Dateien passen.
   const years = [2019, 2020, 2021, 2022, 2023];
 
+  // Mapping für Monatsnamen
+  const monthNames = {
+    "1": "January", "2": "February", "3": "March", "4": "April",
+    "5": "May", "6": "June", "7": "July", "8": "August",
+    "9": "September", "10": "October", "11": "November", "12": "December"
+  };
+
   const chartData = useMemo(() => {
-    // Filtere die Daten nach Monat, falls nicht "all" ausgewählt ist.
     const filteredData =
       selectedMonth === "all"
         ? accidentData
@@ -33,7 +36,6 @@ const AccidentBarChart = ({ accidentData, selectedMonth }: { accidentData: any[]
             (entry) => parseInt(entry.UMONAT, 10) === parseInt(selectedMonth, 10)
           );
     
-    // Aggregiere die Unfallanzahl (als Anzahl der Einträge) in die beiden Kategorien.
     let totalCounts = { weekday: 0, weekend: 0 };
     filteredData.forEach(entry => {
       const day = parseInt(entry.UWOCHENTAG, 10);
@@ -46,7 +48,6 @@ const AccidentBarChart = ({ accidentData, selectedMonth }: { accidentData: any[]
       }
     });
 
-    // Berechne, wie viele Tage insgesamt in den ausgewählten Monaten vorhanden sind.
     let totalWeekdayDays = 0, totalWeekendDays = 0;
     if (selectedMonth === "all") {
       years.forEach(year => {
@@ -65,20 +66,22 @@ const AccidentBarChart = ({ accidentData, selectedMonth }: { accidentData: any[]
       });
     }
 
-      // Berechne den Durchschnitt (Unfälle pro Tag) für beide Kategorien, gerundet auf ganze Zahlen.
-      const avgWeekday = totalWeekdayDays > 0 ? Math.round(totalCounts.weekday / totalWeekdayDays) : 0;
-      const avgWeekend = totalWeekendDays > 0 ? Math.round(totalCounts.weekend / totalWeekendDays) : 0;
+    const avgWeekday = totalWeekdayDays > 0 ? Math.round(totalCounts.weekday / totalWeekdayDays) : 0;
+    const avgWeekend = totalWeekendDays > 0 ? Math.round(totalCounts.weekend / totalWeekendDays) : 0;
    
     return [
-      { name: selectedMonth === "all" ? 'Workday' : 'Workday', Accidents: avgWeekday },
-      { name: selectedMonth === "all" ? 'Weekend' : 'Weekend', Accidents: avgWeekend },
+      { name: 'Workday', Accidents: avgWeekday },
+      { name: 'Weekend', Accidents: avgWeekend },
     ];
   }, [accidentData, selectedMonth, years]);
 
   return (
     <>
       <Box fontSize="md" fontWeight="bold" mb={2} textAlign="center">
-        Average Bicycle Accidents per Day in Selected Month
+        Average Bicycle Accidents per Day
+      </Box>
+      <Box fontSize="sm" color="gray.600" mb={4} textAlign="center">
+        {selectedMonth === "all" ? "For all months" : `For ${monthNames[selectedMonth]}`}
       </Box>
       <Box display="flex" justifyContent="center" mt={4}>
         <BarChart width={600} height={300} data={chartData}>
