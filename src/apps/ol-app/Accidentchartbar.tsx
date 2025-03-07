@@ -70,25 +70,26 @@ const AccidentBarChart = ({ accidentData, selectedMonth }: { accidentData: any[]
       const avgWeekend = totalWeekendDays > 0 ? Math.round(totalCounts.weekend / totalWeekendDays) : 0;
    
     return [
-      { name: selectedMonth === "all" ? 'Workday' : 'Workday', Unfaelle: avgWeekday },
-      { name: selectedMonth === "all" ? 'Weekend' : 'Weekend', Unfaelle: avgWeekend },
+      { name: selectedMonth === "all" ? 'Workday' : 'Workday', Accidents: avgWeekday },
+      { name: selectedMonth === "all" ? 'Weekend' : 'Weekend', Accidents: avgWeekend },
     ];
   }, [accidentData, selectedMonth, years]);
 
   return (
     <>
-  <Box fontSize="md" fontWeight="bold" mb={2} textAlign="center">
-    Average Bicycle Accidents per Day in Selected Month
-    Durchschnittliche Unfälle pro Tag im ausgewählten Monat
-  </Box>
-  <BarChart width={600} height={300} data={chartData}>
-    <XAxis dataKey="name" />
-    <YAxis />
-    <Tooltip />
-    <Legend />
-    <Bar dataKey="Unfaelle" fill="#8884d8" />
-  </BarChart>
-</>
+      <Box fontSize="md" fontWeight="bold" mb={2} textAlign="center">
+        Average Bicycle Accidents per Day in Selected Month
+      </Box>
+      <Box display="flex" justifyContent="center" mt={4}>
+        <BarChart width={600} height={300} data={chartData}>
+          <XAxis dataKey="name" />
+          <YAxis />
+          <Tooltip />
+          <Legend />
+          <Bar dataKey="Accidents" fill="#8884d8" />
+        </BarChart>
+      </Box>
+    </>
   );
 };
 

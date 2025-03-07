@@ -22,7 +22,9 @@ import AccidentBarChart from "./Accidentchartbar";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { Spinner } from "@chakra-ui/react";
 import BikeTrafficChart from "./BikeTrafficChart";
-import BikeAccidentScatter from "./BikeAccidentScatter"
+import BikeAccidentScatter from "./BikeAccidentScatter";
+import Legend from "./Legend";
+import { WelcomeModal } from "./welcomeText";
 
 // ─── UTILITY-FUNKTIONEN ─────────────────────────────────────────────
 // Konvertiert Minuten in einen HH:MM-String
@@ -56,6 +58,7 @@ export function MapApp() {
   const [bikeCountData, setBikeCountData] = useState([]);
   const [accidentData, setAccidentData] = useState([]);
   const [rawAccidentData, setRawAccidentData] = useState([]); // Für gecachte Unfalldaten
+  const [showModal, setShowModal] = useState(true);
 
   // Refs für Unfall-Layer, GeoJSON-Source und Station-Layer
   const accidentsLayerRef = useRef(null);
@@ -107,7 +110,7 @@ export function MapApp() {
       const stationData = [];
       for (const year of years) {
         for (const month of monthsArray) {
-          const path = `./data/radverkehr-zaehlstellen/${stationId}/${year}-${month}.csv`;
+          const path = `data/radverkehr-zaehlstellen/${stationId}/${year}-${month}.csv`;
           try {
             const data = await loadCSVs(path);
             stationData.push(...data);
@@ -141,11 +144,11 @@ export function MapApp() {
     setLoading(true);
     const loadAccidentData = async () => {
       const csvFiles = [
-        "./data/Unfallorte2019_LinRef.csv",
-        "./data/Unfallorte2020_LinRef.csv",
-        "./data/Unfallorte2021_LinRef.csv",
-        "./data/Unfallorte2022_LinRef.csv",
-        "./data/Unfallorte2023_LinRef.csv",
+        "data/Unfallorte2019_LinRef.csv",
+        "data/Unfallorte2020_LinRef.csv",
+        "data/Unfallorte2021_LinRef.csv",
+        "data/Unfallorte2022_LinRef.csv",
+        "data/Unfallorte2023_LinRef.csv",
       ];
       let allData = [];
       for (const url of csvFiles) {
@@ -250,7 +253,7 @@ useEffect(() => {
     );
     map.olMap.getView().setMaxZoom(19);
     const vectorSource = new VectorSource({
-      url: "./data/fahrradzaehl-standorte.geojson",
+      url: "data/fahrradzaehl-standorte.geojson",
       format: new GeoJSON({
         dataProjection: "EPSG:4326",
         featureProjection: "EPSG:4326",
@@ -414,7 +417,7 @@ const aggregatedCounts = useMemo(() => {
           Map Page
         </Button>
         <Button as={Link} to="/stats">
-          Statistics
+          Plot Page
         </Button>
         <Button colorScheme="red" onClick={handleReset}>
           Reset Application
@@ -424,6 +427,8 @@ const aggregatedCounts = useMemo(() => {
   );
 
   const MainPage = () => (
+    <>
+      {showModal && <WelcomeModal onClose={() => setShowModal(false)} />}
     <Flex
       flex="1"
       direction="column"
@@ -468,29 +473,31 @@ const aggregatedCounts = useMemo(() => {
 
       {/* Karte */}
       <Box
-        backgroundColor="white"
-        borderWidth="2px"
-        borderRadius="lg"
-        boxShadow="lg"
-        overflow="hidden"
-        width="80%"
-        height="60%"
-      >
-        <MapContainer mapId={MAP_ID} role="main">
-          <MapAnchor position="bottom-right" horizontalGap={10} verticalGap={30}>
-            <Flex direction="column" gap={1} padding={1}>
-              <InitialExtent mapId={MAP_ID}/>
-              <ZoomIn mapId={MAP_ID} />
-              <ZoomOut mapId={MAP_ID} />
-            </Flex>
-          </MapAnchor>
-        </MapContainer>
-      </Box>
+  backgroundColor="white"
+  borderWidth="2px"
+  borderRadius="lg"
+  boxShadow="lg"
+  overflow="hidden"
+  width="80%"
+  height="60%"
+  position="relative"
+>
+  <MapContainer mapId={MAP_ID} role="main">
+    <MapAnchor position="bottom-right" horizontalGap={10} verticalGap={30}>
+      <Flex direction="column" gap={1} padding={1}>
+        <InitialExtent mapId={MAP_ID} />
+        <ZoomIn mapId={MAP_ID} />
+        <ZoomOut mapId={MAP_ID} />
+      </Flex>
+    </MapAnchor>
+    <Legend /> {/* Hier wird die Legende eingefügt */}
+  </MapContainer>
+</Box>
 
       {/* Zeitintervall-Picker */}
       <Flex direction="column" alignItems="center" width="100%" mt={8}>
         <Text mb={4} fontSize="lg" fontWeight="bold">
-          Choose a time interval
+          Choose a time interval (Only relevant for counting stations)
         </Text>
         <Flex gap={4}>
           <Box>
@@ -532,100 +539,101 @@ const aggregatedCounts = useMemo(() => {
         </Flex>
       </Flex>
     </Flex>
+  </>
   );
 
   const StatsPage = () => (
-    <Flex flex="1" direction="column" padding={4} overflowY="auto">
-      {/* Filter-Dropdowns */}
-      <Flex width="50%" justifyContent="space-between" mb={4}>
-        <Box width="48%">
-          <Text mb={2}>Select a weekday</Text>
-          <Select value={weekday} onChange={(e) => setWeekday(e.target.value)}>
-            <option value="all">Any Workday</option>
-            <option value="1">Sunday</option>
-            <option value="2">Monday</option>
-            <option value="3">Tuesday</option>
-            <option value="4">Wednesday</option>
-            <option value="5">Thursday</option>
-            <option value="6">Friday</option>
-            <option value="7">Saturday</option>
-          </Select>
-        </Box>
-        <Box width="48%">
-          <Text mb={2}>Select a month</Text>
-          <Select value={month} onChange={(e) => setMonth(e.target.value)}>
-            <option value="all">Any Month</option>
-            <option value="1">January</option>
-            <option value="2">February</option>
-            <option value="3">March</option>
-            <option value="4">April</option>
-            <option value="5">May</option>
-            <option value="6">June</option>
-            <option value="7">July</option>
-            <option value="8">August</option>
-            <option value="9">September</option>
-            <option value="10">Oktober</option>
-            <option value="11">November</option>
-            <option value="12">December</option>
-          </Select>
-        </Box>
-      </Flex>
-  
-      {/* Zeitintervall-Picker */}
-      <Flex direction="column" alignItems="center" width="100%" mt={4}>
-        <Text mb={4} fontSize="lg" fontWeight="bold">
-          Choose a time interval
+    <Flex flex="1" direction="column" padding={6} overflowY="auto" gap={6}>
+      {/* Filter & Zeitsteuerung */}
+      <Box width="100%" padding={4} borderWidth="1px" borderRadius="md" boxShadow="sm" backgroundColor="white">
+        <Text fontSize="lg" fontWeight="bold" mb={4} textAlign="center">
+          Filter Data
         </Text>
-        <Flex gap={4}>
-          <Box>
-            <Text mb={1}>Start</Text>
-            <Select
-              value={formatTime(timeRange[0])}
-              onChange={(e) => {
-                const newStart = timeStringToMinutes(e.target.value);
-                setTimeRange(([currentStart, currentEnd]) =>
-                  newStart > currentEnd ? [newStart, newStart] : [newStart, currentEnd]
-                );
-              }}
-            >
-              {timeOptions.map((timeStr) => (
-                <option key={timeStr} value={timeStr}>
-                  {timeStr}
-                </option>
-              ))}
+        <Flex justifyContent="space-between" wrap="wrap" gap={4}>
+          {/* Wochentag & Monat */}
+          <Box flex="1" minWidth="220px">
+            <Text mb={2}>Select a weekday</Text>
+            <Select value={weekday} onChange={(e) => setWeekday(e.target.value)}>
+              <option value="all">Any Workday</option>
+              <option value="1">Sunday</option>
+              <option value="2">Monday</option>
+              <option value="3">Tuesday</option>
+              <option value="4">Wednesday</option>
+              <option value="5">Thursday</option>
+              <option value="6">Friday</option>
+              <option value="7">Saturday</option>
             </Select>
           </Box>
-          <Box>
-            <Text mb={1}>End</Text>
-            <Select
-              value={formatTime(timeRange[1])}
-              onChange={(e) => {
-                const newEnd = timeStringToMinutes(e.target.value);
-                setTimeRange(([currentStart, currentEnd]) =>
-                  newEnd < currentStart ? [newEnd, newEnd] : [currentStart, newEnd]
-                );
-              }}
-            >
-              {timeOptions.map((timeStr) => (
-                <option key={timeStr} value={timeStr}>
-                  {timeStr}
-                </option>
-              ))}
+          <Box flex="1" minWidth="220px">
+            <Text mb={2}>Select a month</Text>
+            <Select value={month} onChange={(e) => setMonth(e.target.value)}>
+              <option value="all">Any Month</option>
+              <option value="1">January</option>
+              <option value="2">February</option>
+              <option value="3">March</option>
+              <option value="4">April</option>
+              <option value="5">May</option>
+              <option value="6">June</option>
+              <option value="7">July</option>
+              <option value="8">August</option>
+              <option value="9">September</option>
+              <option value="10">October</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
             </Select>
           </Box>
         </Flex>
-      </Flex>
+        {/* Zeitintervall-Picker */}
+        <Box mt={6}>
+          <Text mb={2} fontSize="md" fontWeight="bold">
+            Choose a time interval
+          </Text>
+          <Flex gap={4} justifyContent="center">
+            <Box>
+              <Text mb={1}>Start</Text>
+              <Select
+                value={formatTime(timeRange[0])}
+                onChange={(e) => {
+                  const newStart = timeStringToMinutes(e.target.value);
+                  setTimeRange(([currentStart, currentEnd]) =>
+                    newStart > currentEnd ? [newStart, newStart] : [newStart, currentEnd]
+                  );
+                }}
+              >
+                {timeOptions.map((timeStr) => (
+                  <option key={timeStr} value={timeStr}>
+                    {timeStr}
+                  </option>
+                ))}
+              </Select>
+            </Box>
+            <Box>
+              <Text mb={1}>End</Text>
+              <Select
+                value={formatTime(timeRange[1])}
+                onChange={(e) => {
+                  const newEnd = timeStringToMinutes(e.target.value);
+                  setTimeRange(([currentStart, currentEnd]) =>
+                    newEnd < currentStart ? [newEnd, newEnd] : [currentStart, newEnd]
+                  );
+                }}
+              >
+                {timeOptions.map((timeStr) => (
+                  <option key={timeStr} value={timeStr}>
+                    {timeStr}
+                  </option>
+                ))}
+              </Select>
+            </Box>
+          </Flex>
+        </Box>
+      </Box>
   
-      {/* Aggregierte Fahrradzählungen */}
-       <Box
-        mt={4}
-        width="60%"
-        borderWidth="1px"
-        borderRadius="md"
-        p={4}
-        boxShadow="sm"
-        backgroundColor="white"
-      >
+      {/* Aggregierte Daten */}
+      <Box width="100%" borderWidth="1px" borderRadius="md" p={4} boxShadow="sm" backgroundColor="white">
+        <Text fontSize="lg" fontWeight="bold" mb={4} textAlign="center">
+          Aggregated Bicycle Counts
+        </Text>
         {Object.entries(aggregatedCounts).map(([stationId, count]) => {
           const stationFeature = vectorSourceRef.current
             ?.getFeatures()
@@ -633,7 +641,7 @@ const aggregatedCounts = useMemo(() => {
           const stationName = stationFeature
             ? stationFeature.get("name") || `Station ${stationId}`
             : `Station ${stationId}`;
-
+  
           return (
             <Flex
               key={stationId}
@@ -650,31 +658,21 @@ const aggregatedCounts = useMemo(() => {
       </Box>
   
       {/* Diagramme */}
-      <Box width="80%" mt={6}>
-        <Text fontSize="lg" fontWeight="bold" mb={2} textAlign="center">
-          Average Bicycle traffic per hour        </Text>
+      <Box width="100%" borderWidth="1px" borderRadius="md" p={4} boxShadow="sm" backgroundColor="white">
         <BikeTrafficChart
           bikeCountData={bikeCountData}
           timeRange={timeRange}
           selectedMonth={month}
           selectedWeekday={weekday}
         />
-        <Text fontSize="lg" fontWeight="bold" mb={2} textAlign="center">
-          Accident statistics - Worday and Weekends
+        <Text fontSize="lg" fontWeight="bold" mt={6} mb={4} textAlign="center">
+          Accident Statistics - Workdays vs. Weekends
         </Text>
-        <AccidentBarChart
-          accidentData={rawAccidentData}  // Deine rohen Unfalldaten
-          selectedMonth={month}  // Monat auswählen
-        />
-      </Box>
-      <Box width="80%" mt={6} mb={6}>
-        <Text fontSize="lg" fontWeight="bold" mb={2} textAlign="center">
-          Zusammenhang zwischen Fahrradverkehr und Unfällen
-        </Text>
-        <BikeAccidentScatter bikeCountData={bikeCountData} accidentData={rawAccidentData} />
+        <AccidentBarChart accidentData={rawAccidentData} selectedMonth={month} />
       </Box>
     </Flex>
   );
+  
   
   
 

@@ -94,7 +94,7 @@
         "eslint-plugin-react-hooks": "catalog:",
         "eslint-plugin-unused-imports": "catalog:",
         "fast-glob": "catalog:",
-        "gh-pages": "^6.2.0",
+        "gh-pages": "^6.1.0",
         "handlebars": "catalog:",
         "happy-dom": "catalog:",
         "husky": "catalog:",
