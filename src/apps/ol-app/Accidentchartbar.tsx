@@ -65,19 +65,20 @@ const AccidentBarChart = ({ accidentData, selectedMonth }: { accidentData: any[]
       });
     }
 
-    // Berechne den Durchschnitt (Unfälle pro Tag) für beide Kategorien.
-    const avgWeekday = totalWeekdayDays > 0 ? totalCounts.weekday / totalWeekdayDays : 0;
-    const avgWeekend = totalWeekendDays > 0 ? totalCounts.weekend / totalWeekendDays : 0;
-
+      // Berechne den Durchschnitt (Unfälle pro Tag) für beide Kategorien, gerundet auf ganze Zahlen.
+      const avgWeekday = totalWeekdayDays > 0 ? Math.round(totalCounts.weekday / totalWeekdayDays) : 0;
+      const avgWeekend = totalWeekendDays > 0 ? Math.round(totalCounts.weekend / totalWeekendDays) : 0;
+   
     return [
-      { name: selectedMonth === "all" ? 'Alle Werktage' : 'Werktage', Unfaelle: avgWeekday },
-      { name: selectedMonth === "all" ? 'Alle Wochenenden' : 'Wochenende', Unfaelle: avgWeekend },
+      { name: selectedMonth === "all" ? 'Workday' : 'Workday', Unfaelle: avgWeekday },
+      { name: selectedMonth === "all" ? 'Weekend' : 'Weekend', Unfaelle: avgWeekend },
     ];
   }, [accidentData, selectedMonth, years]);
 
   return (
     <>
   <Box fontSize="md" fontWeight="bold" mb={2} textAlign="center">
+    Average Bicycle Accidents per Day in Selected Month
     Durchschnittliche Unfälle pro Tag im ausgewählten Monat
   </Box>
   <BarChart width={600} height={300} data={chartData}>

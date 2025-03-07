@@ -163,7 +163,6 @@ export function MapApp() {
   }, []);
 
   // ─── Unfalldaten in die Karte einfügen ─────────────────────────────────────────────
-  // ─── Unfalldaten in die Karte einfügen ─────────────────────────────────────────────
 useEffect(() => {
   if (!map?.olMap || rawAccidentData.length === 0) return;
   if (accidentsLayerRef.current) {
@@ -360,33 +359,38 @@ useEffect(() => {
   }, [bikeCountData, timeRange, month, weekday]);
 
   // ─── Aggregierte Zählungen für die Anzeige der Statistiken ─────────────────────────────────────────────
-  const aggregatedCounts = useMemo(() => {
-    return bikeCountData.reduce((acc, station) => {
-      const filteredEntries = station.data.filter((entry) => {
-        const [dateStr, timeStr] = entry.timestamp.split(" ");
-        const entryMinutes = timeStringToMinutes(timeStr);
-        const date = new Date(`${dateStr}T${timeStr}`);
-        const entryWeekday = date.getDay() === 0 ? 7 : date.getDay();
-        const weekdayMatch =
-          weekday === "all" || entryWeekday === parseInt(weekday, 10);
-        const entryMonth = date.getMonth() + 1;
-        const monthMatch =
-          month === "all" || entryMonth === parseInt(month, 10);
-        return (
-          entryMinutes >= timeRange[0] &&
-          entryMinutes <= timeRange[1] &&
-          weekdayMatch &&
-          monthMatch
-        );
-      });
-      const totalCount = filteredEntries.reduce(
-        (sum, entry) => sum + entry.count,
-        0
+  // Aktualisierte Aggregation: Berechnung des Durchschnitts statt der Gesamtsumme
+const aggregatedCounts = useMemo(() => {
+  return bikeCountData.reduce((acc, station) => {
+    const filteredEntries = station.data.filter((entry) => {
+      const [dateStr, timeStr] = entry.timestamp.split(" ");
+      const entryMinutes = timeStringToMinutes(timeStr);
+      const date = new Date(`${dateStr}T${timeStr}`);
+      const entryWeekday = date.getDay() === 0 ? 7 : date.getDay();
+      const weekdayMatch =
+        weekday === "all" || entryWeekday === parseInt(weekday, 10);
+      const entryMonth = date.getMonth() + 1;
+      const monthMatch =
+        month === "all" || entryMonth === parseInt(month, 10);
+      return (
+        entryMinutes >= timeRange[0] &&
+        entryMinutes <= timeRange[1] &&
+        weekdayMatch &&
+        monthMatch
       );
-      acc[station.id] = totalCount;
-      return acc;
-    }, {});
-  }, [bikeCountData, timeRange, weekday, month]);
+    });
+    const totalCount = filteredEntries.reduce(
+      (sum, entry) => sum + entry.count,
+      0
+    );
+    const averageCount =
+      filteredEntries.length > 0 ? totalCount / filteredEntries.length : 0;
+    // Auf zwei Nachkommastellen runden
+    acc[station.id] = Math.round(averageCount * 100) / 100;
+    return acc;
+  }, {});
+}, [bikeCountData, timeRange, weekday, month]);
+
 
   const timeOptions = useMemo(() => generateTimeOptions(), []);
 
@@ -407,10 +411,10 @@ useEffect(() => {
       </Text>
       <Flex gap={4}>
         <Button as={Link} to="/">
-          Hauptseite
+          Map Page
         </Button>
         <Button as={Link} to="/stats">
-          Statistiken
+          Statistics
         </Button>
         <Button colorScheme="red" onClick={handleReset}>
           Reset Application
@@ -432,32 +436,32 @@ useEffect(() => {
         <Box width="48%">
           <Text mb={2}>Select a weekday</Text>
           <Select value={weekday} onChange={(e) => setWeekday(e.target.value)}>
-            <option value="all">Beliebiger Wochentag</option>
-            <option value="1">Sonntag</option>
-            <option value="2">Montag</option>
-            <option value="3">Dienstag</option>
-            <option value="4">Mittwoch</option>
-            <option value="5">Donnerstag</option>
-            <option value="6">Freitag</option>
-            <option value="7">Samstag</option>
+            <option value="all">Any Weekday</option>
+            <option value="1">Sunday</option>
+            <option value="2">Monday</option>
+            <option value="3">Tuesday</option>
+            <option value="4">Wednesday</option>
+            <option value="5">Thursday</option>
+            <option value="6">Friday</option>
+            <option value="7">Saturday</option>
           </Select>
         </Box>
         <Box width="48%">
           <Text mb={2}>Select a month</Text>
           <Select value={month} onChange={(e) => setMonth(e.target.value)}>
-            <option value="all">Alle Monate</option>
-            <option value="1">Januar</option>
-            <option value="2">Februar</option>
-            <option value="3">März</option>
+            <option value="all">Any Month</option>
+            <option value="1">January</option>
+            <option value="2">February</option>
+            <option value="3">March</option>
             <option value="4">April</option>
-            <option value="5">Mai</option>
-            <option value="6">Juni</option>
-            <option value="7">Juli</option>
+            <option value="5">May</option>
+            <option value="6">June</option>
+            <option value="7">July</option>
             <option value="8">August</option>
             <option value="9">September</option>
             <option value="10">Oktober</option>
             <option value="11">November</option>
-            <option value="12">Dezember</option>
+            <option value="12">December</option>
           </Select>
         </Box>
       </Flex>
@@ -486,11 +490,11 @@ useEffect(() => {
       {/* Zeitintervall-Picker */}
       <Flex direction="column" alignItems="center" width="100%" mt={8}>
         <Text mb={4} fontSize="lg" fontWeight="bold">
-          Choose an accident time interval
+          Choose a time interval
         </Text>
         <Flex gap={4}>
           <Box>
-            <Text mb={1}>Startzeit</Text>
+            <Text mb={1}>Start</Text>
             <Select
               value={formatTime(timeRange[0])}
               onChange={(e) => {
@@ -508,7 +512,7 @@ useEffect(() => {
             </Select>
           </Box>
           <Box>
-            <Text mb={1}>Endzeit</Text>
+            <Text mb={1}>End</Text>
             <Select
               value={formatTime(timeRange[1])}
               onChange={(e) => {
@@ -526,52 +530,43 @@ useEffect(() => {
             </Select>
           </Box>
         </Flex>
-        <Text mt={4} fontSize="md">
-          Intervall: {formatTime(timeRange[0])} - {formatTime(timeRange[1])}
-        </Text>
       </Flex>
     </Flex>
   );
 
   const StatsPage = () => (
-    <Flex
-      flex="1"
-      direction="column"
-      justifyContent="center"
-      alignItems="center"
-      padding={4}
-    >
+    <Flex flex="1" direction="column" padding={4} overflowY="auto">
       {/* Filter-Dropdowns */}
       <Flex width="50%" justifyContent="space-between" mb={4}>
         <Box width="48%">
           <Text mb={2}>Select a weekday</Text>
           <Select value={weekday} onChange={(e) => setWeekday(e.target.value)}>
-            <option value="all">Beliebiger Wochentag</option>
-            <option value="1">Sonntag</option>
-            <option value="2">Montag</option>
-            <option value="3">Dienstag</option>
-            <option value="4">Mittwoch</option>
-            <option value="5">Donnerstag</option>
-            <option value="6">Freitag</option>
-            <option value="7">Samstag</option>
+            <option value="all">Any Workday</option>
+            <option value="1">Sunday</option>
+            <option value="2">Monday</option>
+            <option value="3">Tuesday</option>
+            <option value="4">Wednesday</option>
+            <option value="5">Thursday</option>
+            <option value="6">Friday</option>
+            <option value="7">Saturday</option>
           </Select>
         </Box>
         <Box width="48%">
           <Text mb={2}>Select a month</Text>
           <Select value={month} onChange={(e) => setMonth(e.target.value)}>
-            <option value="all">Alle Monate</option>
-            <option value="1">Januar</option>
-            <option value="2">Februar</option>
-            <option value="3">März</option>
+            <option value="all">Any Month</option>
+            <option value="1">January</option>
+            <option value="2">February</option>
+            <option value="3">March</option>
             <option value="4">April</option>
-            <option value="5">Mai</option>
-            <option value="6">Juni</option>
-            <option value="7">Juli</option>
+            <option value="5">May</option>
+            <option value="6">June</option>
+            <option value="7">July</option>
             <option value="8">August</option>
             <option value="9">September</option>
             <option value="10">Oktober</option>
             <option value="11">November</option>
-            <option value="12">Dezember</option>
+            <option value="12">December</option>
           </Select>
         </Box>
       </Flex>
@@ -579,11 +574,11 @@ useEffect(() => {
       {/* Zeitintervall-Picker */}
       <Flex direction="column" alignItems="center" width="100%" mt={4}>
         <Text mb={4} fontSize="lg" fontWeight="bold">
-          Choose an accident time interval
+          Choose a time interval
         </Text>
         <Flex gap={4}>
           <Box>
-            <Text mb={1}>Startzeit</Text>
+            <Text mb={1}>Start</Text>
             <Select
               value={formatTime(timeRange[0])}
               onChange={(e) => {
@@ -601,7 +596,7 @@ useEffect(() => {
             </Select>
           </Box>
           <Box>
-            <Text mb={1}>Endzeit</Text>
+            <Text mb={1}>End</Text>
             <Select
               value={formatTime(timeRange[1])}
               onChange={(e) => {
@@ -621,7 +616,8 @@ useEffect(() => {
         </Flex>
       </Flex>
   
-      <Box
+      {/* Aggregierte Fahrradzählungen */}
+       <Box
         mt={4}
         width="60%"
         borderWidth="1px"
@@ -630,28 +626,33 @@ useEffect(() => {
         boxShadow="sm"
         backgroundColor="white"
       >
-        <Text fontSize="lg" fontWeight="bold" mb={2} textAlign="center">
-          Fahrradzählungen im gewählten Zeitraum
-        </Text>
-        {Object.entries(aggregatedCounts).map(([stationId, count]) => (
-          <Flex
-            key={stationId}
-            justifyContent="space-between"
-            borderBottom="1px solid"
-            borderColor="gray.200"
-            p={2}
-          >
-            <Text fontSize="sm">Station {stationId}</Text>
-            <Text fontSize="sm">{count} Fahrräder</Text>
-          </Flex>
-        ))}
-      </Box>
+        {Object.entries(aggregatedCounts).map(([stationId, count]) => {
+          const stationFeature = vectorSourceRef.current
+            ?.getFeatures()
+            .find((feature) => String(feature.get("id")) === stationId);
+          const stationName = stationFeature
+            ? stationFeature.get("name") || `Station ${stationId}`
+            : `Station ${stationId}`;
 
-      {/* Fahrradverkehr nach Stunde (Liniendiagramm) */}
+          return (
+            <Flex
+              key={stationId}
+              justifyContent="space-between"
+              borderBottom="1px solid"
+              borderColor="gray.200"
+              p={2}
+            >
+              <Text fontSize="sm">{stationName}</Text>
+              <Text fontSize="sm">{Math.round(count)} Bicycles</Text>
+            </Flex>
+          );
+        })}
+      </Box>
+  
+      {/* Diagramme */}
       <Box width="80%" mt={6}>
         <Text fontSize="lg" fontWeight="bold" mb={2} textAlign="center">
-          Durchschnittlicher Fahrradverkehr pro Stunde
-        </Text>
+          Average Bicycle traffic per hour        </Text>
         <BikeTrafficChart
           bikeCountData={bikeCountData}
           timeRange={timeRange}
@@ -659,14 +660,14 @@ useEffect(() => {
           selectedWeekday={weekday}
         />
         <Text fontSize="lg" fontWeight="bold" mb={2} textAlign="center">
-          Unfallstatistik - Werktage vs. Wochenende
+          Accident statistics - Worday and Weekends
         </Text>
         <AccidentBarChart
           accidentData={rawAccidentData}  // Deine rohen Unfalldaten
           selectedMonth={month}  // Monat auswählen
         />
       </Box>
-      <Box width="80%" mt={6}>
+      <Box width="80%" mt={6} mb={6}>
         <Text fontSize="lg" fontWeight="bold" mb={2} textAlign="center">
           Zusammenhang zwischen Fahrradverkehr und Unfällen
         </Text>
@@ -674,6 +675,7 @@ useEffect(() => {
       </Box>
     </Flex>
   );
+  
   
 
   return (
@@ -693,7 +695,7 @@ useEffect(() => {
       >
         <Box textAlign="center">
           <Text fontSize="xl" fontWeight="bold" mb={2}>
-            Lade Daten...
+            Loading Data...
           </Text>
           <Spinner size="xl" />
         </Box>
