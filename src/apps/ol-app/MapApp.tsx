@@ -157,7 +157,7 @@ export function MapApp() {
       const csvFiles = [
         "data/Unfallorte2019_LinRef.csv",
         "data/Unfallorte2020_LinRef.csv",
-        "data/Unfallorte2021LinRef.csv",
+        "data/Unfallorte2021_LinRef.csv",
         "data/Unfallorte2022_LinRef.csv",
         "data/Unfallorte2023_LinRef.csv",
       ];
@@ -710,7 +710,7 @@ const aggregatedCounts = useMemo(() => {
         </Box>
       </Flex>
     )}    
-    <Router basename="AOSD-2024-25/">
+    <Router>
       <Flex height="100vh" direction="column" overflow="hidden" width="100%">
         <Header />
         <Routes>
